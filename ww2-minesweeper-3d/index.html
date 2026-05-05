@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WW2 3D Minesweeper - Battlefront</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #0a0a0a;
+            font-family: 'Courier New', monospace;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #header {
+            background: linear-gradient(180deg, rgba(20,10,5,0.9) 0%, rgba(40,20,10,0.7) 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #8b4513;
+            pointer-events: auto;
+        }
+
+        .title {
+            color: #ffd700;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px #000, 0 0 20px #ff6600;
+            letter-spacing: 3px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .stat-item {
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border: 2px solid #8b4513;
+            border-radius: 5px;
+        }
+
+        .stat-label {
+            color: #8b4513;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            color: #ffd700;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .btn {
+            background: linear-gradient(180deg, #4a3728 0%, #2a1f18 100%);
+            border: 3px solid #8b4513;
+            color: #ffd700;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            border-radius: 5px;
+        }
+
+        .btn:hover {
+            background: linear-gradient(180deg, #6a4f38 0%, #4a2f28 100%);
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+
+        #minimap {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 200px;
+            background: rgba(0,0,0,0.7);
+            border: 3px solid #8b4513;
+            border-radius: 10px;
+            pointer-events: auto;
+        }
+
+        #difficulty-selector {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border: 2px solid #8b4513;
+            border-radius: 10px;
+            pointer-events: auto;
+        }
+
+        #difficulty-selector select {
+            background: #2a1f18;
+            color: #ffd700;
+            border: 1px solid #8b4513;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20,10,5,0.95);
+            padding: 40px;
+            border: 4px solid #8b4513;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            pointer-events: auto;
+            z-index: 200;
+        }
+
+        #game-over h2 {
+            color: #ff4444;
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ff0000;
+        }
+
+        #game-over.victory h2 {
+            color: #ffd700;
+            text-shadow: 0 0 20px #ffd700;
+        }
+
+        .war-effect {
+            position: absolute;
+            pointer-events: none;
+        }
+
+        #vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="canvas-container"></div>
+        
+        <div id="ui-overlay">
+            <div id="vignette"></div>
+            
+            <div id="header">
+                <div class="title">⚔️ WW2 BATTLEFRONT MINESWEEPER ⚔️</div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Minas Restantes</div>
+                        <div class="stat-value" id="mines-count">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Tiempo</div>
+                        <div class="stat-value" id="timer">00:00</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Banderas</div>
+                        <div class="stat-value" id="flags-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="difficulty-selector">
+                <label style="color: #ffd700; display: block; margin-bottom: 10px;">DIFICULTAD:</label>
+                <select id="difficulty">
+                    <option value="easy">Fácil (8x8, 10 minas)</option>
+                    <option value="medium" selected>Medio (12x12, 25 minas)</option>
+                    <option value="hard">Difícil (16x16, 50 minas)</option>
+                    <option value="extreme">Extremo (20x20, 80 minas)</option>
+                </select>
+            </div>
+
+            <div id="controls">
+                <button class="btn" onclick="game.newGame()">🎮 Nueva Misión</button>
+                <button class="btn" onclick="game.toggleSound()">🔊 Sonido</button>
+                <button class="btn" onclick="game.toggleHints()">💡 Pistas</button>
+            </div>
+
+            <canvas id="minimap"></canvas>
+
+            <div id="game-over">
+                <h2 id="game-over-title">MISSION FAILED</h2>
+                <p id="game-over-message" style="color: #fff; margin-bottom: 20px; font-size: 18px;"></p>
+                <button class="btn" onclick="game.newGame()">🔄 Reintentar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
